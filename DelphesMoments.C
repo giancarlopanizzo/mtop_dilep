@@ -1,10 +1,10 @@
 #include "classes/DelphesClasses.h"
 
-#include "ExRootAnalysis/ExRootTreeReader.h"
-#include "ExRootAnalysis/ExRootTreeWriter.h"
-#include "ExRootAnalysis/ExRootTreeBranch.h"
-#include "ExRootAnalysis/ExRootResult.h"
-#include "ExRootAnalysis/ExRootUtilities.h"
+#include "external/ExRootAnalysis/ExRootTreeReader.h"
+#include "external/ExRootAnalysis/ExRootTreeWriter.h"
+#include "external/ExRootAnalysis/ExRootTreeBranch.h"
+#include "external/ExRootAnalysis/ExRootResult.h"
+#include "external/ExRootAnalysis/ExRootUtilities.h"
 
 void DelphesMoments(){
 
@@ -14,7 +14,7 @@ void DelphesMoments(){
   void GetMoments(const char *inputFileList,double moments[2][4][20],double errors[2][4][20],int masspoint);
 
   stringstream str_i;
-  int startat=0; int stopat=8;
+  int startat=0; int stopat=7;
   int numberofpoints=stopat-startat+1;
   for (int i=startat; i<=stopat; i++){
 	str_i.str("");

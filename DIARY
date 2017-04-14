@@ -14,11 +14,17 @@ done
 ##############################################
 Using Delphes. From SimpleDraw -> DelphesMoments.C
 
-Create lists of files:
+Create lists of files, laptop:
 	ls /home/gian/Public/CERN/MG5_aMCcurr/ttbartoemu/Events/run_*/*.root | grep "mtscan" > mt.moments.list
 	split -l 1 -d mt.moments.list mt.moments.list.
 
+Create list of files, farm, "_n_" files per mass point:
+	ls /gpfs/atlas/gpanizzo/MG5_aMCcurr/ttbarLOemu_13200_1*/Events/run_0?/testscripts_delphes_events.root | grep -v "run_01" > mt.moments.list
+	split -l _n_ -d mt.moments.list mt.moments.list.
 
 Found problem in installation of lhapdf6: mg5 told me the installation was successfull, but it wasn't. It could not find "Python.h".
 Needed to install:
 sudo apt-get install python-dev # (I checked the python version with python --version. If v3 install instead python3-dev)
+
+
+On the far
