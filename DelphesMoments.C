@@ -61,7 +61,7 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
   Double_t temp,nen;
 
   TH1::SetDefaultSumw2();
-  TH1D *histtemp = result.AddHist1D("histtemp", "negative leptons moments", "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
+  TH1D *histtemp =(TH1D*) result.AddHist1D("histtemp", "negative leptons moments", "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
   TH1D *hist[2];
   hist[0] = (TH1D*) result.AddHist1D("hist_truth", "negative leptons moments, gen", "negative leptons moments, gen, relevant units", "number of entries", 4, 1.0, 5.0);
   hist[1] = (TH1D*) result.AddHist1D("hist_reco", "negative leptons moments, reco", "negative leptons moments, reco, relevant units", "number of entries", 4, 1.0, 5.0);
@@ -108,8 +108,9 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
   
   }
 
-  stringstream fileout;
-  fileout.str(inputFileList);
-  fileout<<".result";
-  result.Write(fileout.str().c_str()); 
+  std::string fileout(inputFileList);
+  fileout+=".result";
+  cout << "Writing "<<fileout  <<endl;
+  // result.Write(fileout.str().c_str());
+  result.Write(fileout.c_str());
 }
