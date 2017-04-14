@@ -1,0 +1,19 @@
+launch ttbartoemu
+set ebeam1 6500
+set ebeam2 6500
+set MT 165
+launch
+set MT 167  
+launch
+set MT 169  
+launch
+set MT 171  
+launch
+set MT 173  
+launch
+set MT 175  
+launch
+set MT 177  
+launch
+set MT 179
+launch

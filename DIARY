@@ -1,0 +1,24 @@
+1) Install ExRootAnalysis:
+	- Open your latest mg5_amc
+	- install ExRootAnalysis
+
+2) Use this to convert lhe files to root files:
+
+for numb in 1# {11..17}; 
+do 
+	rtu="run_"$numb;
+	gunzip $rtu/unweighted_events.lhe.gz; 
+	/gpfs/atlas/gpanizzo/MG5_aMCcurr/ExRootAnalysis/ExRootLHEFConverter $rtu/unweighted_events.lhe $rtu/unweighted_events.root; 
+done
+
+##############################################
+Using Delphes. From SimpleDraw -> DelphesMoments.C
+
+Create lists of files:
+	ls /home/gian/Public/CERN/MG5_aMCcurr/ttbartoemu/Events/run_*/*.root | grep "mtscan" > mt.moments.list
+	split -l 1 -d mt.moments.list mt.moments.list.
+
+
+Found problem in installation of lhapdf6: mg5 told me the installation was successfull, but it wasn't. It could not find "Python.h".
+Needed to install:
+sudo apt-get install python-dev # (I checked the python version with python --version. If v3 install instead python3-dev)
