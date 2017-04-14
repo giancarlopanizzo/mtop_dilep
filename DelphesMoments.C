@@ -6,24 +6,33 @@
 #include "external/ExRootAnalysis/ExRootResult.h"
 #include "external/ExRootAnalysis/ExRootUtilities.h"
 
-void DelphesMoments(){
-
+void DelphesMoments(Int_t combine,Int_t fixedmasspoint){ // combine: 0-> all in one, 1->only one mass point and exit, 2-> combine previous
+  
   double moments[2][4][20],errors[2][4][20];
   double masses[]={165.0,167.0,169.0,171.0,173.0,175.0,177.0,179.0,181.0};
 
   void GetMoments(const char *inputFileList,double moments[2][4][20],double errors[2][4][20],int masspoint);
+  void GetMomentsFromFile(const char *inputFile,double moments[2][4][20],double errors[2][4][20],int masspoint);
 
   stringstream str_i;
   int startat=0; int stopat=0;
+  if (combine==1) {startat=fixedmasspoint; stopat=fixedmasspoint;}
+  else {startat=0; stopat=7;}
+
   int numberofpoints=stopat-startat+1;
   for (int i=startat; i<=stopat; i++){
 	str_i.str("");
 	if (i<10) str_i<<"0";
         str_i<< i;
-	GetMoments( ("mt.moments.list."+str_i.str()).c_str(),moments,errors,i-startat);
+	  if (combine!=2){
+		GetMoments( ("mt.moments.list."+str_i.str()).c_str(),moments,errors,i-startat);
+	  }
+ 	 else {  // assume combine 2, so just collect results:open relevant file and pick what needed
+		GetMomentsFromFile( ("mt.moments.list."+str_i.str()+".result").c_str(),moments,errors,i-startat);
+  	 }
   }
 
-
+  if (combine==1) return;
   TH1::SetDefaultSumw2();
   TCanvas *c1=new TCanvas("c1","Moments");
   
@@ -113,4 +122,19 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
   cout << "Writing "<<fileout  <<endl;
   // result.Write(fileout.str().c_str());
   result.Write(fileout.c_str());
+}
+
+void GetMomentsFromFile(const char *inputFile,double moments[2][4][20],double errors[2][4][20], int masspoint)
+{
+  TFile*f1=new TFile(inputFile,"READ");
+  TH1D *hist[2];
+  hist[0]=(TH1D*) f1->Get("hist_truth");
+  hist[1]=(TH1D*) f1->Get("hist_reco");
+  
+  for (int j=0; j<2; j++){
+	  for (int i=1; i<=4; i++){
+	       moments[j][i-1][masspoint]=hist[j]->GetBinContent(i);
+	       errors[j][i-1][masspoint]=hist[j]->GetBinError(i);
+	  }
+  }
 }
