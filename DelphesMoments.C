@@ -14,7 +14,7 @@ void DelphesMoments(){
   void GetMoments(const char *inputFileList,double moments[2][4][20],double errors[2][4][20],int masspoint);
 
   stringstream str_i;
-  int startat=0; int stopat=7;
+  int startat=0; int stopat=0;
   int numberofpoints=stopat-startat+1;
   for (int i=startat; i<=stopat; i++){
 	str_i.str("");
@@ -61,10 +61,10 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
   Double_t temp,nen;
 
   TH1::SetDefaultSumw2();
-  TH1 *histtemp = result.AddHist1D("histtemp", "negative leptons moments", "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
-  TH1 *hist[2];
-  hist[0] = result.AddHist1D("hist", "negative leptons moments, gen", "negative leptons moments, gen, relevant units", "number of entries", 4, 1.0, 5.0);
-  hist[1] = result.AddHist1D("hist", "negative leptons moments, reco", "negative leptons moments, reco, relevant units", "number of entries", 4, 1.0, 5.0);
+  TH1D *histtemp = result.AddHist1D("histtemp", "negative leptons moments", "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
+  TH1D *hist[2];
+  hist[0] = (TH1D*) result.AddHist1D("hist_truth", "negative leptons moments, gen", "negative leptons moments, gen, relevant units", "number of entries", 4, 1.0, 5.0);
+  hist[1] = (TH1D*) result.AddHist1D("hist_reco", "negative leptons moments, reco", "negative leptons moments, reco, relevant units", "number of entries", 4, 1.0, 5.0);
 
   stringstream str_i;
   string momdraw,cutdraw;
@@ -89,11 +89,11 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
         
         // reco level:electrons
         cutdraw = "TMath::Power(Electron.PT,"+str_i.str()+")*( Muon_size==1 && Electron.Charge>0 && (TMath::Abs(Electron.Eta)<2.4 && Electron.PT>20))";
-        nen=chain->Draw(momdraw.c_str(),cutdraw.c_str());
+        nen=(double) chain->Draw(momdraw.c_str(),cutdraw.c_str());
         
         cutdraw = "TMath::Power(Muon.PT,"+str_i.str()+")*( Electron_size==1 && Muon.Charge>0 && (TMath::Abs(Muon.Eta)<2.4 && Muon.PT>20))";
         momdraw = str_i.str() + ">>+ histtemp"; // add to electrons 
-        nen+=chain->Draw(momdraw.c_str(),cutdraw.c_str());
+        nen+=(double) chain->Draw(momdraw.c_str(),cutdraw.c_str());
         
         
 	temp=histtemp->GetBinContent(i)/nen;
@@ -108,5 +108,8 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
   
   }
 
-  result.Print(); 
+  stringstream fileout;
+  fileout.str(inputFileList);
+  fileout<<".result";
+  result.Write(fileout.str().c_str()); 
 }
