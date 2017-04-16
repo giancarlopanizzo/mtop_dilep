@@ -26,8 +26,16 @@ Found problem in installation of lhapdf6: mg5 told me the installation was succe
 Needed to install:
 sudo apt-get install python-dev # (I checked the python version with python --version. If v3 install instead python3-dev)
 
-
+############################
 Now also parallelized version:
 
 for numi in {0..7}; do source ../../Projects/mtop_dilep/run_delphesmoments.sh /home/gian/Public/CERN/Projects/ 1 $numi; done
 source ../../Projects/mtop_dilep/run_delphesmoments.sh /home/gian/Public/CERN/Projects/ 2 0
+
+
+On the farm
+for numi in {0..7}; do bsub -q short -cwd `pwd` -e mom${numi}.log -oo mom${numi}.log source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 1 $numi; done
+source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 2 0
+
+
+####################
