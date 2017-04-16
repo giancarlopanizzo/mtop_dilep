@@ -8,11 +8,11 @@
 
 void DelphesMoments(Int_t combine,Int_t fixedmasspoint){ // combine: 0-> all in one, 1->only one mass point and exit, 2-> combine previous
   
-  double moments[2][4][20],errors[2][4][20];
+  double moments[9][4][20],errors[9][4][20];
   double masses[]={165.0,167.0,169.0,171.0,173.0,175.0,177.0,179.0,181.0};
 
-  void GetMoments(const char *inputFileList,double moments[2][4][20],double errors[2][4][20],int masspoint);
-  void GetMomentsFromFile(const char *inputFile,double moments[2][4][20],double errors[2][4][20],int masspoint);
+  void GetMoments(const char *inputFileList,double moments[9][4][20],double errors[9][4][20],int masspoint);
+  void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double errors[9][4][20],int masspoint);
 
   stringstream str_i;
   int startat=0; int stopat=0;
@@ -37,8 +37,8 @@ void DelphesMoments(Int_t combine,Int_t fixedmasspoint){ // combine: 0-> all in 
   TCanvas *c1=new TCanvas("c1","Moments");
   
   string functionfit;
-  TGraphErrors grMom[2][4];
-  for (int lev=0; lev<2; lev++){
+  TGraphErrors grMom[9][4];
+  for (int lev=0; lev<9; lev++){
     for (int i=0; i<4; i++){
             grMom[lev][i]=TGraphErrors(numberofpoints,masses,moments[lev][i],0,errors[lev][i]);
             grMom[lev][i].GetXaxis()->SetTitle("m_{t} (GeV)");
@@ -53,31 +53,176 @@ void DelphesMoments(Int_t combine,Int_t fixedmasspoint){ // combine: 0-> all in 
             grMom[lev][i].Fit(fFrix);
             grMom[lev][i].Draw("AP");
             str_i<<".lev"<<lev;
-            c1->SaveAs((str_i.str()+".pdf").c_str());
+            c1->SaveAs((str_i.str()+".png").c_str());
     }
   }
 }
 
 
-void GetMoments(const char *inputFileList,double moments[2][4][20],double errors[2][4][20],int masspoint)
+void GetMoments(const char *inputFileList,double moments[9][4][20],double errors[9][4][20],int masspoint)
 {
+    
+  void MyMessage(const char * msg, double num, bool show);
   TChain *chain= new TChain("Delphes");
 
   if(!FillChain(chain, inputFileList)) return;
 
   ExRootResult result;
+  ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
+  
+  TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+  TClonesArray *branchElectron = treeReader->UseBranch("Electron");
+  TClonesArray *branchMuon = treeReader->UseBranch("Muon");
 
   Double_t temp,nen;
 
-  TH1::SetDefaultSumw2();
-  TH1D *histtemp =(TH1D*) result.AddHist1D("histtemp", "negative leptons moments", "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
-  TH1D *hist[2];
-  hist[0] = (TH1D*) result.AddHist1D("hist_truth", "negative leptons moments, gen", "negative leptons moments, gen, relevant units", "number of entries", 4, 1.0, 5.0);
-  hist[1] = (TH1D*) result.AddHist1D("hist_reco", "negative leptons moments, reco", "negative leptons moments, reco, relevant units", "number of entries", 4, 1.0, 5.0);
+  TH1::SetDefaultSumw2();  
+  TH1D *hist[9];
+  
+  stringstream str_i;
+  for (int iobs=0; iobs<9; iobs++){
+    str_i.str("hist_");
+    str_i << iobs;
+    hist[iobs] = (TH1D*) result.AddHist1D(str_i.str().c_str(), ( "negative leptons moments, "+str_i.str() ).c_str(), "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
+  }
 
+  // new way, taken from Example3
+  
+  Long64_t allEntries = treeReader->GetEntries();
+
+  cout << "** Chain contains " << allEntries << " events" << endl;
+
+  TLorentzVector ele_part,muon_part;
+  Int_t muon_charge,ele_charge;
+  Electron *electron;
+  Muon *muon;
+
+  TLorentzVector momentum,elecand,muoncand;
+
+  Bool_t goodEle,goodMuon,debug=false;
+
+  Long64_t entry;
+
+  Int_t i, j, pdgCode;
+  
+  Int_t nobs;
+  std::vector<double> observables; // check always that "hist" has a coherent size!
+
+  // Loop over all events. 
+  // Not yet looking for btag...FIXME
+  for(entry = 0; entry < allEntries; ++entry){
+  //for(entry = 0; entry < 10; ++entry){
+      // Load selected branches with data from specified event
+      MyMessage("Analysing entry: ",entry,debug);
+      treeReader->ReadEntry(entry);
+      
+      goodEle=false;
+      goodMuon=false;
+      
+      // Loop over all electrons in event
+      elecand.SetPtEtaPhiM(0,0,0,0);
+    
+      for(i = 0; i < branchElectron->GetEntriesFast(); ++i) // take electron with highest pt This doesn't necessarily give the correct lepton FIXME
+      {
+          electron = (Electron*) branchElectron->At(i);
+          if (electron->PT > elecand.Pt()) {
+              elecand=electron->P4();
+              ele_charge=electron->Charge;
+              ele_part = ((GenParticle*) electron->Particle.GetObject())->P4();
+              goodEle=( elecand.Pt() > 20.0 && TMath::Abs(elecand.Eta() ) < 2.4);
+              MyMessage("## Found electron candidate with Pt",elecand.Pt(),debug );
+              MyMessage("#### Eta",elecand.Eta(),debug );
+              MyMessage("#### Charge",ele_charge,debug );
+          }
+      }
+      
+      // Loop over all muons in event, taking the hardest one. This doesn't necessarily give the correct lepton FIXME
+      muoncand.SetPtEtaPhiM(0,0,0,0);
+      for(i = 0; i < branchMuon->GetEntriesFast(); ++i) {
+          muon = (Muon*) branchMuon->At(i);
+          if (muon->PT > muoncand.Pt()) {
+              muoncand=muon->P4();
+              muon_charge=muon->Charge;
+              muon_part = ( (GenParticle*) muon->Particle.GetObject() )->P4();
+              goodMuon=( muoncand.Pt() > 20.0 && TMath::Abs(muoncand.Eta() ) < 2.4);
+              MyMessage("## Found muon candidate with Pt",muoncand.Pt(),debug );
+              MyMessage("#### Eta",muoncand.Eta(),debug );
+              MyMessage("#### Charge",muon_charge,debug );
+          }
+       }
+       
+       if (!(goodEle && goodMuon)) continue;
+       else { // we have two kinematically allowed leptons. 
+           if ( (ele_charge * muon_charge) > 0) continue;
+           else { // two good, opposite sign leptons: go on and save all relevant observables
+               MyMessage("Found two good leptons!",1,debug);
+               //save positive lepton PT
+                    // save other observables ...
+               
+               // 0) Truth level positive charged lepton pt
+               // From here on only reco level quantities:
+               // 1) positive charged lepton pt
+               // 2) pt of the l+l- system
+               // 3) M(l+l-)
+               // 4) E(l+) + E(l-)
+               // 5) pt(p+) + pt(l-)
+               // From here on new observables:
+               // 6) | y(l+) -  y(l-) | 
+               // 7) pt of difference l+ - l-
+               // 8) M of difference l+ - l-
+               observables.clear();
+               
+               if (ele_charge > 0) {
+                   observables.push_back(ele_part.Pt());
+                   observables.push_back(elecand.Pt());
+               }
+               else {
+                   observables.push_back(muon_part.Pt());
+                   observables.push_back(muoncand.Pt());
+               }
+               momentum=elecand+muoncand;
+               observables.push_back(momentum.Pt()); // 2
+               observables.push_back(momentum.M() ); // 3
+               observables.push_back(elecand.E()+muoncand.E()); // 4 
+               observables.push_back(elecand.Pt()+muoncand.Pt()); // 5
+               observables.push_back(elecand.Eta()-muoncand.Eta()); // 6
+               momentum=elecand-muoncand;
+               observables.push_back(momentum.Pt()); // 7
+               observables.push_back(momentum.M()); // 8
+               
+               // compute moments of pt 
+                    // and other observables
+               nobs=(Int_t) observables.size();
+               for (int iobs=0; iobs<nobs; iobs++){
+                   for (int imom=1; imom<=4; imom++){ // here UNnormalised moments! remember somewhere to normalise them!
+                       hist[iobs]->Fill(imom,TMath::Power(observables[iobs],imom)) ;
+                       MyMessage("#  Filling observable ",iobs,debug);
+                       MyMessage("#  With content ",TMath::Power(observables[iobs],imom),debug);
+                   }
+               }
+           }
+       } // end good events relevant observables
+  } // end loop over entries
+  
+  // Now normalise histograms and save moments 
+  for (int iobs=0; iobs<nobs; iobs++){ // nobs has the last value set, hopefully not buggy
+      nen = (double) ( hist[iobs]->GetEntries() / 4); // 4 moments, entries are 4* goodevents
+      hist[iobs]->Scale(1.0/nen); // this should scale both contents and errors
+      MyMessage("** Computing moments for observable ",iobs,true);
+      for (int imom=1; imom<=4; imom++){ // here UNnormalised moments! remember somewhere to normalise them! 
+          moments[iobs][imom-1][masspoint]=hist[iobs]->GetBinContent(imom);
+          cout <<imom<<":"<< moments[iobs][imom-1][masspoint] << " +- ";
+          errors[iobs][imom-1][masspoint]=hist[iobs]->GetBinError(imom);
+          cout <<	errors[iobs][imom-1][masspoint] <<	endl;
+      }
+  }
+  
+  
+  // old way, through TTreeDraw. 
+/*
   stringstream str_i;
   string momdraw,cutdraw;
-
+  
   for (int i=1; i<=4; i++){
         str_i.str("");
         str_i<< i;
@@ -116,7 +261,7 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
         hist[1]->Add(histtemp);
   
   }
-
+*/
   std::string fileout(inputFileList);
   fileout+=".result";
   cout << "Writing "<<fileout  <<endl;
@@ -124,17 +269,25 @@ void GetMoments(const char *inputFileList,double moments[2][4][20],double errors
   result.Write(fileout.c_str());
 }
 
-void GetMomentsFromFile(const char *inputFile,double moments[2][4][20],double errors[2][4][20], int masspoint)
+void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double errors[9][4][20], int masspoint)
 {
   TFile*f1=new TFile(inputFile,"READ");
-  TH1D *hist[2];
-  hist[0]=(TH1D*) f1->Get("hist_truth");
-  hist[1]=(TH1D*) f1->Get("hist_reco");
+  TH1D *hist[9];
   
-  for (int j=0; j<2; j++){
+  stringstream str_i;
+  
+  for (int j=0; j<9; j++){
+      str_i.str("hist_");
+      str_i << j;
+      hist[j] = (TH1D*) f1->Get( str_i.str().c_str() );
 	  for (int i=1; i<=4; i++){
 	       moments[j][i-1][masspoint]=hist[j]->GetBinContent(i);
 	       errors[j][i-1][masspoint]=hist[j]->GetBinError(i);
 	  }
   }
+}
+
+void MyMessage(const char * msg, double num, bool show)
+{
+    if (show) cout << msg << num << endl;
 }
