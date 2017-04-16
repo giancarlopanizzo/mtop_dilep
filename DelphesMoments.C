@@ -22,14 +22,14 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
   int numberofpoints=stopat-startat+1;
   for (int i=startat; i<=stopat; i++){
 	str_i.str("");
-	str_i << lhaid <<".";
+	str_i << lhaid <<".list.";
 	if (i<10) str_i<<"0";
         str_i<< i;
 	  if (combine!=2){
-		GetMoments( ("mt.moments.list."+str_i.str()).c_str(),moments,errors,i-startat);
+		GetMoments( ("mt.moments."+str_i.str()).c_str(),moments,errors,i-startat);
 	  }
  	 else {  // assume combine 2, so just collect results:open relevant file and pick what needed
-		GetMomentsFromFile( ("mt.moments.list."+str_i.str()+".result").c_str(),moments,errors,i-startat);
+		GetMomentsFromFile( ("mt.moments."+str_i.str()+".result").c_str(),moments,errors,i-startat);
   	 }
   }
 
@@ -53,7 +53,7 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
             TF1 *fFrix = new TF1 ("fFrix", functionfit.c_str(), 165.0, 181.0);
             grMom[lev][i].Fit(fFrix);
             grMom[lev][i].Draw("AP");
-            str_i<<".lev"<<lev;
+            str_i<<"."<<lhaid<<".lev"<<lev;
             c1->SaveAs((str_i.str()+".png").c_str());
     }
   }

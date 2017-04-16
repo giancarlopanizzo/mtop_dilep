@@ -39,3 +39,8 @@ source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 2 0
 
 
 ####################
+Now updated to run on different lhaids:
+
+On the farm
+for numi in {0..7}; do bsub -q short -cwd `pwd` -e mom${numi}.log -oo mom${numi}.log source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 1 $numi13200; done
+source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 2 0 13200

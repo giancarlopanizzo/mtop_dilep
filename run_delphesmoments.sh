@@ -4,9 +4,10 @@
 
 combine=$2
 fixmp=$3
+lhaid=$4
 root -l -b <<- EOF
   gSystem->Load("libDelphes.so");
-  .X ${1}/mtop_dilep/DelphesMoments.C($combine,$fixmp);
+  .X ${1}/mtop_dilep/DelphesMoments.C($combine,$lhaid,$fixmp);
   .q
 EOF
 
