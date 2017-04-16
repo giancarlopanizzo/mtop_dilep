@@ -6,7 +6,7 @@
 #include "external/ExRootAnalysis/ExRootResult.h"
 #include "external/ExRootAnalysis/ExRootUtilities.h"
 
-void DelphesMoments(Int_t combine,Int_t fixedmasspoint){ // combine: 0-> all in one, 1->only one mass point and exit, 2-> combine previous
+void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine: 0-> all in one, 1->only one mass point and exit, 2-> combine previous
   
   double moments[9][4][20],errors[9][4][20];
   double masses[]={165.0,167.0,169.0,171.0,173.0,175.0,177.0,179.0,181.0};
@@ -22,6 +22,7 @@ void DelphesMoments(Int_t combine,Int_t fixedmasspoint){ // combine: 0-> all in 
   int numberofpoints=stopat-startat+1;
   for (int i=startat; i<=stopat; i++){
 	str_i.str("");
+	str_i << lhaid <<".";
 	if (i<10) str_i<<"0";
         str_i<< i;
 	  if (combine!=2){
