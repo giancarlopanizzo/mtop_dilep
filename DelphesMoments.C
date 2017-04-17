@@ -217,9 +217,9 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
           cout <<imom<<":"<< mean << " +- ";
 
 	  // Now correct the errors: they now are sqrt(  <x^2>  /N )
-	  // They should be sqrt(  <x^2>  - <x>^2 )
+	  // They should be sqrt(  ( <x^2>  - <x>^2 ) /N )
           delta=hist[iobs]->GetBinError(imom);
-	  delta=TMath::Sqrt( nen*delta*delta - mean*mean );
+	  delta=TMath::Sqrt( delta*delta - mean*mean/nen );
 	  errors[iobs][imom-1][masspoint]=delta;
           hist[iobs]->SetBinError(imom,delta); // necessary to allow errors to be read by following copies
           cout << delta << endl;

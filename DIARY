@@ -44,3 +44,7 @@ Now updated to run on different lhaids:
 On the farm
 for numi in {0..7}; do bsub -q short -cwd `pwd` -e mom${numi}.log -oo mom${numi}.log source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 1 $numi13200; done
 source ../../mtop_dilep/run_delphesmoments.sh /gpfs/atlas/gpanizzo 2 0 13200
+
+On laptod created dummy "0" lhaid suffix
+for numi in {0..7}; do source ../../Projects/mtop_dilep/run_delphesmoments.sh /home/gian/Public/CERN/Projects/ 1 $numi 0; done
+source ../../Projects/mtop_dilep/run_delphesmoments.sh /home/gian/Public/CERN/Projects/ 2 0 0
