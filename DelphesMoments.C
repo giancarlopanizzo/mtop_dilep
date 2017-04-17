@@ -75,7 +75,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
   TClonesArray *branchElectron = treeReader->UseBranch("Electron");
   TClonesArray *branchMuon = treeReader->UseBranch("Muon");
 
-  Double_t temp,nen;
+  Double_t delta,mean,nen;
 
   TH1::SetDefaultSumw2();  
   TH1D *hist[9];
@@ -209,12 +209,20 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
   for (int iobs=0; iobs<nobs; iobs++){ // nobs has the last value set, hopefully not buggy
       nen = (double) ( hist[iobs]->GetEntries() / 4); // 4 moments, entries are 4* goodevents
       hist[iobs]->Scale(1.0/nen); // this should scale both contents and errors
+
       MyMessage("** Computing moments for observable ",iobs,true);
-      for (int imom=1; imom<=4; imom++){ // here UNnormalised moments! remember somewhere to normalise them! 
-          moments[iobs][imom-1][masspoint]=hist[iobs]->GetBinContent(imom);
-          cout <<imom<<":"<< moments[iobs][imom-1][masspoint] << " +- ";
-          errors[iobs][imom-1][masspoint]=hist[iobs]->GetBinError(imom);
-          cout <<	errors[iobs][imom-1][masspoint] <<	endl;
+      for (int imom=1; imom<=4; imom++){ 
+          mean=hist[iobs]->GetBinContent(imom);
+          moments[iobs][imom-1][masspoint]=mean;
+          cout <<imom<<":"<< mean << " +- ";
+
+	  // Now correct the errors: they now are sqrt(  <x^2>  /N )
+	  // They should be sqrt(  <x^2>  - <x>^2 )
+          delta=hist[iobs]->GetBinError(imom);
+	  delta=TMath::Sqrt( nen*delta*delta - mean*mean );
+	  errors[iobs][imom-1][masspoint]=delta;
+          hist[iobs]->SetBinError(imom,delta); // necessary to allow errors to be read by following copies
+          cout << delta << endl;
       }
   }
   
