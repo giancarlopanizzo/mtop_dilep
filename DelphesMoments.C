@@ -68,10 +68,10 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 
   if(!FillChain(chain, inputFileList)) return;
   // switch off reading unuseful branches
-  chain.SetBranchStatus("*",0); //disable all branches
-  chain.SetBranchStatus("Particle",1);
-  chain.setBranchStatus("Electron",1);  
-  chain.setBranchStatus("Muon",1);  
+  chain->SetBranchStatus("*",0); //disable all branches
+  chain->SetBranchStatus("Particle*",1);
+  chain->SetBranchStatus("Electron*",1);  
+  chain->SetBranchStatus("Muon*",1);  
 
   ExRootResult result;
   ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
