@@ -13,6 +13,7 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
 
   void GetMoments(const char *inputFileList,double moments[9][4][20],double errors[9][4][20],int masspoint);
   void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double errors[9][4][20],int masspoint);
+  void PrintCorrMatrix(const char *inputFile);
 
   stringstream str_i;
   int startat=0; int stopat=0;
@@ -33,7 +34,10 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
   	 }
   }
 
-  if (combine==1) return;
+  if (combine==1) {// in this case str_i still contains correct value 
+      PrintCorrMatrix(  ("mt.moments."+str_i.str()+".result").c_str() );
+      return;
+  }
   TH1::SetDefaultSumw2();
   TCanvas *c1=new TCanvas("c1","Moments");
   
@@ -84,6 +88,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 
   TH1::SetDefaultSumw2();  
   TH1D *hist[9];
+  TH2D *corrmatr=(TH2D*)result.AddHist2D("corrmatr","Correlation matrix entries","i","j",9,0.0,9.0, 9,0.0,9.0);
   
   stringstream str_i;
   for (int iobs=0; iobs<9; iobs++){
@@ -116,8 +121,8 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 
   // Loop over all events. 
   // Not yet looking for btag...FIXME
-  for(entry = 0; entry < allEntries; ++entry){
-  //for(entry = 0; entry < 10; ++entry){
+  //for(entry = 0; entry < allEntries; ++entry){
+  for(entry = 0; entry < 10; ++entry){
       // Load selected branches with data from specified event
       MyMessage("Analysing entry: ",entry,debug);
       treeReader->ReadEntry(entry);
@@ -205,18 +210,22 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
                        MyMessage("#  Filling observable ",iobs,debug);
                        MyMessage("#  With content ",TMath::Power(observables[iobs],imom),debug);
                    }
+                   for (int jobs=iobs; jobs<nobs; jobs++) corrmatr->Fill(iobs,jobs,observables[iobs]*observables[jobs]);
                }
            }
        } // end good events relevant observables
   } // end loop over entries
   
   // Now normalise histograms and save moments 
+  nen = (double) ( hist[0]->GetEntries() / 4); // 4 moments, entries are 4* goodevents. Assuming all histograms have same nen ...
+  MyMessage("Number of entries: ",nen,debug);
+  corrmatr->Scale(1.0/nen);
   for (int iobs=0; iobs<nobs; iobs++){ // nobs has the last value set, hopefully not buggy
-      nen = (double) ( hist[iobs]->GetEntries() / 4); // 4 moments, entries are 4* goodevents
+      
       hist[iobs]->Scale(1.0/nen); // this should scale both contents and errors
-
+      
       MyMessage("** Computing moments for observable ",iobs,true);
-      for (int imom=1; imom<=4; imom++){ 
+      for (int imom=4; imom>=1; imom--){// useful to leave last one as first moments for correlation matrix computation 
           mean=hist[iobs]->GetBinContent(imom);
           moments[iobs][imom-1][masspoint]=mean;
           cout <<imom<<":"<< mean << " +- ";
@@ -228,6 +237,15 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 	  errors[iobs][imom-1][masspoint]=delta;
           hist[iobs]->SetBinError(imom,delta); // necessary to allow errors to be read by following copies
           cout << delta << endl;
+      }
+      // now correlation matrix. "delta" contains sigma/sqrt(nen) of iobs, hopefully
+      for (int jobs=0; jobs<=iobs; jobs++){ // refine corrmatr step by step
+          mean=corrmatr->GetBinContent(jobs+1,iobs+1);
+          MyMessage("Corr matrix was: ",mean,debug);
+          mean-=hist[iobs]->GetBinContent(1)*hist[jobs]->GetBinContent(1); // now mean is <iobs jobs> - <iobs><jobs>
+          MyMessage("Corr matrix is: ",mean,debug);
+          mean/=nen*(delta*errors[jobs][0][masspoint]); // we are computing the corrmatrix of -this- mass point . . .
+          corrmatr->SetBinContent(jobs+1,iobs+1,mean); // done! 
       }
   }
   
@@ -281,6 +299,8 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
   cout << "Writing "<<fileout  <<endl;
   // result.Write(fileout.str().c_str());
   result.Write(fileout.c_str());
+  delete treeReader;
+  delete chain;
 }
 
 void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double errors[9][4][20], int masspoint)
@@ -299,6 +319,22 @@ void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double er
 	       errors[j][i-1][masspoint]=hist[j]->GetBinError(i);
 	  }
   }
+  delete f1;
+}
+
+void PrintCorrMatrix(const char *inputFile)
+{
+  TFile*f1=new TFile(inputFile,"READ");
+  TH2D *corrmatr=(TH2D*)f1->Get("corrmatr");
+  
+  cout << "Correlation matrix for file "<<inputFile<<endl;
+  for (int j=0; j<9; j++){
+	  for (int i=0; i<9; i++){
+               printf("%5.3f ",corrmatr->GetBinContent(j+1,i+1) );
+	  }
+	  cout << endl;
+  }
+  delete f1;
 }
 
 void MyMessage(const char * msg, double num, bool show)
