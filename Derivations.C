@@ -41,7 +41,6 @@ void Derivations(const char *inputFile)
   TTree *chaincopy = chain->CloneTree(0);
   TH1D*cutflow=new TH1D("cutflow","Efficiency of cuts/detector effects: ",2,0,2);
  
-  cout << "** New chain contains at the beginning " << chaincopy->GetEntries() << " events" << endl;
   TLorentzVector ele_part,muon_part;
   Int_t muon_charge,ele_charge;
   Electron *electron;
@@ -63,7 +62,7 @@ void Derivations(const char *inputFile)
   for(entry = 0; entry < allEntries; ++entry){
   //for(entry = 0; entry < 10; ++entry){
       // Load selected branches with data from specified event
-      MyMessage("Analysing entry: ",entry,debug);
+      if ((entry%5000)==0) cout << "Analysing entry: "<<entry<<endl;
       chain->GetEntry(entry);
       
       goodEle=false;

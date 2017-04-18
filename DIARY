@@ -49,9 +49,19 @@ On laptod created dummy "0" lhaid suffix
 for numi in {0..7}; do source ../../Projects/mtop_dilep/run_delphesmoments.sh /home/gian/Public/CERN/Projects/ 1 $numi 0; done
 source ../../Projects/mtop_dilep/run_delphesmoments.sh /home/gian/Public/CERN/Projects/ 2 0 0
 ########################
+To rmeove selectively or not some part of runs do
+for dirs in `ls | grep "ttbarLOemu" | grep -v "CT14"`; do ./$dirs/bin/madevent removepythia.txt; done
+###################
 To cope with the storage issue on the farm, created "Derivations.C", which at least save only relevant events... not enough perhaps, but something
 
 On laptop do
 	source ../../Projects/mtop_dilep/run_derivations.sh /home/gian/Public/CERN/Projects /home/gian/Public/CERN/MG5_aMCcurr/ttbartoemu/Events/run_05/mtscan_delphes_events.root
 e.g. to derive every file inside a file list:
         for files in `cat mt.moments.0.list`; do source ../../Projects/mtop_dilep/run_derivations.sh /home/gian/Public/CERN/Projects $files; done
+
+On farm, run by run:
+
+        for files in `grep "run_07" mt.moments.*.list | awk -F : '{print $2}'`; do bsub -q bigmem -e derivations.err -o derivations.out -cwd `pwd` source ../../mtop_dilep/run_derivations.sh /gpfs/atlas/gpanizzo $files; done
+then, if everything is good
+        for files in `ls /gpfs/atlas/gpanizzo/MG5_aMCcurr/ttbarLOemu_*_1??/Events/run_07/*der.root`; do rm ${files%"der.root"}"root"; ln -s $files ${files%"der.root"}"root"; done > trash.txt
+
