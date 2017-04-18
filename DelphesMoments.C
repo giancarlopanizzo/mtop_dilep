@@ -121,8 +121,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 
   // Loop over all events. 
   // Not yet looking for btag...FIXME
-  //for(entry = 0; entry < allEntries; ++entry){
-  for(entry = 0; entry < 10; ++entry){
+  for(entry = 0; entry < ( (debug) ? 10 : allEntries); ++entry){
       // Load selected branches with data from specified event
       MyMessage("Analysing entry: ",entry,debug);
       treeReader->ReadEntry(entry);
