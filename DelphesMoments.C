@@ -208,7 +208,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
                        hist[iobs]->Fill(imom,TMath::Power(observables[iobs],imom)) ;
                        MyMessage("#  Filling observable ",iobs,debug);
                        MyMessage("#  With content ",TMath::Power(observables[iobs],imom),debug);
-                       for (int jobs=iobs; jobs<nobs; jobs++) for (int jmom=imom; jmom<=4; jmom++) corrmatr->Fill(iobs+imom-1,jobs+jmom-1,TMath::Power(observables[iobs],imom)*TMath::Power(observables[jobs],jmom));
+                       for (int jobs=iobs; jobs<nobs; jobs++) for (int jmom=imom; jmom<=4; jmom++) corrmatr->Fill(iobs*4+imom-1,jobs*4+jmom-1,TMath::Power(observables[iobs],imom)*TMath::Power(observables[jobs],jmom));
                    }
                }
            }
@@ -238,13 +238,13 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
           cout << delta << endl;
       
           // now correlation matrix. "delta" contains sigma/sqrt(nen) of iobs imom, hopefully
-          for (int jobs=0; jobs<=iobs; jobs++) for (int jmom=0; jmom<=imom; jmom++) { // refine corrmatr step by step
-              mean=corrmatr->GetBinContent(jobs+jmom,iobs+imom);
+          for (int jobs=0; jobs<=iobs; jobs++) for (int jmom=1; jmom<=imom; jmom++) { // refine corrmatr step by step
+              mean=corrmatr->GetBinContent(jobs*4+jmom,iobs*4+imom);
               // MyMessage("Corr matrix was: ",mean,debug);
               mean-=hist[iobs]->GetBinContent(imom)*hist[jobs]->GetBinContent(jmom); // now mean is <iobs jobs> - <iobs><jobs>
               MyMessage("Corr matrix is: ",mean,debug);
               mean/=nen*(delta*errors[jobs][jmom-1][masspoint]); // we are computing the corrmatrix of -this- mass point . . .
-              corrmatr->SetBinContent(jobs+jmom,iobs+imom,mean); // done! 
+              corrmatr->SetBinContent(jobs*4+jmom,iobs*4+imom,mean); // done! 
           }
       }
   }
