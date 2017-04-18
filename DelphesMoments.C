@@ -88,7 +88,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 
   TH1::SetDefaultSumw2();  
   TH1D *hist[9];
-  TH2D *corrmatr=(TH2D*)result.AddHist2D("corrmatr","Correlation matrix entries","i","j",9,0.0,9.0, 9,0.0,9.0);
+  TH2D *corrmatr=(TH2D*)result.AddHist2D("corrmatr","Correlation matrix entries","i","j",9*4,0.0,9.0*4, 9*4,0.0,9.0*4);
   
   stringstream str_i;
   for (int iobs=0; iobs<9; iobs++){
@@ -123,7 +123,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
   // Not yet looking for btag...FIXME
   for(entry = 0; entry < ( (debug) ? 10 : allEntries); ++entry){
       // Load selected branches with data from specified event
-      MyMessage("Analysing entry: ",entry,debug);
+      if (((entry+1)%5000)==0) cout << "Analysing entry: "<<entry<<endl;      
       treeReader->ReadEntry(entry);
       
       goodEle=false;
@@ -208,8 +208,8 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
                        hist[iobs]->Fill(imom,TMath::Power(observables[iobs],imom)) ;
                        MyMessage("#  Filling observable ",iobs,debug);
                        MyMessage("#  With content ",TMath::Power(observables[iobs],imom),debug);
+                       for (int jobs=iobs; jobs<nobs; jobs++) for (int jmom=imom; jmom<=4; jmom++) corrmatr->Fill(iobs+imom-1,jobs+jmom-1,TMath::Power(observables[iobs],imom)*TMath::Power(observables[jobs],jmom));
                    }
-                   for (int jobs=iobs; jobs<nobs; jobs++) corrmatr->Fill(iobs,jobs,observables[iobs]*observables[jobs]);
                }
            }
        } // end good events relevant observables
@@ -224,7 +224,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
       hist[iobs]->Scale(1.0/nen); // this should scale both contents and errors
       
       MyMessage("** Computing moments for observable ",iobs,true);
-      for (int imom=4; imom>=1; imom--){// useful to leave last one as first moments for correlation matrix computation 
+      for (int imom=1; imom<=4; imom++){// useful to leave last one as first moments for correlation matrix computation 
           mean=hist[iobs]->GetBinContent(imom);
           moments[iobs][imom-1][masspoint]=mean;
           cout <<imom<<":"<< mean << " +- ";
@@ -236,15 +236,16 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 	  errors[iobs][imom-1][masspoint]=delta;
           hist[iobs]->SetBinError(imom,delta); // necessary to allow errors to be read by following copies
           cout << delta << endl;
-      }
-      // now correlation matrix. "delta" contains sigma/sqrt(nen) of iobs, hopefully
-      for (int jobs=0; jobs<=iobs; jobs++){ // refine corrmatr step by step
-          mean=corrmatr->GetBinContent(jobs+1,iobs+1);
-          MyMessage("Corr matrix was: ",mean,debug);
-          mean-=hist[iobs]->GetBinContent(1)*hist[jobs]->GetBinContent(1); // now mean is <iobs jobs> - <iobs><jobs>
-          MyMessage("Corr matrix is: ",mean,debug);
-          mean/=nen*(delta*errors[jobs][0][masspoint]); // we are computing the corrmatrix of -this- mass point . . .
-          corrmatr->SetBinContent(jobs+1,iobs+1,mean); // done! 
+      
+          // now correlation matrix. "delta" contains sigma/sqrt(nen) of iobs imom, hopefully
+          for (int jobs=0; jobs<=iobs; jobs++) for (int jmom=0; jmom<=imom; jmom++) { // refine corrmatr step by step
+              mean=corrmatr->GetBinContent(jobs+jmom,iobs+imom);
+              // MyMessage("Corr matrix was: ",mean,debug);
+              mean-=hist[iobs]->GetBinContent(imom)*hist[jobs]->GetBinContent(jmom); // now mean is <iobs jobs> - <iobs><jobs>
+              MyMessage("Corr matrix is: ",mean,debug);
+              mean/=nen*(delta*errors[jobs][jmom-1][masspoint]); // we are computing the corrmatrix of -this- mass point . . .
+              corrmatr->SetBinContent(jobs+jmom,iobs+imom,mean); // done! 
+          }
       }
   }
   
@@ -327,9 +328,9 @@ void PrintCorrMatrix(const char *inputFile)
   TH2D *corrmatr=(TH2D*)f1->Get("corrmatr");
   
   cout << "Correlation matrix for file "<<inputFile<<endl;
-  for (int j=0; j<9; j++){
-	  for (int i=0; i<9; i++){
-               printf("%5.3f ",corrmatr->GetBinContent(j+1,i+1) );
+  for (int j=0; j<9*4; j++){
+	  for (int i=0; i<9*4; i++){
+		printf("%5.3f ",corrmatr->GetBinContent(j+1,i+1) );
 	  }
 	  cout << endl;
   }
