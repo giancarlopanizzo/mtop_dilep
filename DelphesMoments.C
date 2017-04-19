@@ -42,25 +42,37 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
   TCanvas *c1=new TCanvas("c1","Moments");
   
   string functionfit;
+  str_i.str("");
+  str_i << "fitresults." << lhaid<<".root";
+  TFile *fres=new TFile( str_i.str().c_str(),"RECREATE");
   TGraphErrors grMom[7][4];
   for (int lev=0; lev<7; lev++){
     for (int i=0; i<4; i++){
             grMom[lev][i]=TGraphErrors(numberofpoints,masses,moments[lev][i],0,errors[lev][i]);
             grMom[lev][i].GetXaxis()->SetTitle("m_{t} (GeV)");
-            grMom[lev][i].GetYaxis()->SetTitle("#mu^{1} (GeV)");
+            str_i.str("");
+            str_i<<"#mu^{"<<i+1<<"} (GeV^{"<<i+1<<"})";
+            grMom[lev][i].GetYaxis()->SetTitle(str_i.str().c_str());
             grMom[lev][i].GetYaxis()->SetTitleOffset(1.2);
             grMom[lev][i].SetTitle("");
 
             str_i.str("");
             str_i<< i+1;
             functionfit="[0] * pow(173,"+str_i.str()+") + [1] * pow(x,"+str_i.str()+")";
-            TF1 *fFrix = new TF1 ("fFrix", functionfit.c_str(), 165.0, 181.0);
-            grMom[lev][i].Fit(fFrix);
-            grMom[lev][i].Draw("AP");
-            str_i<<"."<<lhaid<<".lev"<<lev;
-            c1->SaveAs((str_i.str()+".png").c_str());
+            TF1 *fFrix = new TF1 ( ("fFrix"+str_i.str() ).c_str(), functionfit.c_str(), 165.0, 181.0);
+            grMom[lev][i].Fit(fFrix,"S");
+            //grMom[lev][i].Draw("AP");
+            
+            str_i.str("");
+            str_i<<"gr"<<lev<<"_"<<i+1;
+            grMom[lev][i].Write(str_i.str().c_str());
+            delete fFrix;
+            //
+            //str_i<<"."<<lhaid<<".lev"<<lev;
+            //c1->SaveAs((str_i.str()+".png").c_str());
     }
   }
+ delete fres; 
 }
 
 
