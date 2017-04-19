@@ -8,11 +8,11 @@
 
 void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine: 0-> all in one, 1->only one mass point and exit, 2-> combine previous
   
-  double moments[9][4][20],errors[9][4][20];
+  double moments[7][4][20],errors[7][4][20];
   double masses[]={165.0,167.0,169.0,171.0,173.0,175.0,177.0,179.0,181.0};
 
-  void GetMoments(const char *inputFileList,double moments[9][4][20],double errors[9][4][20],int masspoint);
-  void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double errors[9][4][20],int masspoint);
+  void GetMoments(const char *inputFileList,double moments[7][4][20],double errors[7][4][20],int masspoint);
+  void GetMomentsFromFile(const char *inputFile,double moments[7][4][20],double errors[7][4][20],int masspoint);
   void PrintCorrMatrix(const char *inputFile);
 
   stringstream str_i;
@@ -42,8 +42,8 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
   TCanvas *c1=new TCanvas("c1","Moments");
   
   string functionfit;
-  TGraphErrors grMom[9][4];
-  for (int lev=0; lev<9; lev++){
+  TGraphErrors grMom[7][4];
+  for (int lev=0; lev<7; lev++){
     for (int i=0; i<4; i++){
             grMom[lev][i]=TGraphErrors(numberofpoints,masses,moments[lev][i],0,errors[lev][i]);
             grMom[lev][i].GetXaxis()->SetTitle("m_{t} (GeV)");
@@ -64,7 +64,7 @@ void DelphesMoments(Int_t combine,Int_t lhaid, Int_t fixedmasspoint){ // combine
 }
 
 
-void GetMoments(const char *inputFileList,double moments[9][4][20],double errors[9][4][20],int masspoint)
+void GetMoments(const char *inputFileList,double moments[7][4][20],double errors[7][4][20],int masspoint)
 {
     
   void MyMessage(const char * msg, double num, bool show);
@@ -87,11 +87,11 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
   Double_t delta,mean,nen;
 
   TH1::SetDefaultSumw2();  
-  TH1D *hist[9];
-  TH2D *corrmatr=(TH2D*)result.AddHist2D("corrmatr","Correlation matrix entries","i","j",9*4,0.0,9.0*4, 9*4,0.0,9.0*4);
+  TH1D *hist[7];
+  TH2D *corrmatr=(TH2D*)result.AddHist2D("corrmatr","Correlation matrix entries","i","j",7*4,0.0,7.0*4, 7*4,0.0,7.0*4);
   
   stringstream str_i;
-  for (int iobs=0; iobs<9; iobs++){
+  for (int iobs=0; iobs<7; iobs++){
     str_i.str("hist_");
     str_i << iobs;
     hist[iobs] = (TH1D*) result.AddHist1D(str_i.str().c_str(), ( "negative leptons moments, "+str_i.str() ).c_str(), "negative leptons moments, relevant units", "number of entries", 4, 1.0, 5.0);
@@ -114,7 +114,7 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
 
   Long64_t entry;
 
-  Int_t i, j, pdgCode;
+  Int_t i, j,jmom,jobs, pdgCode;
   
   Int_t nobs;
   std::vector<double> observables; // check always that "hist" has a coherent size!
@@ -177,9 +177,9 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
                // 4) E(l+) + E(l-)
                // 5) pt(p+) + pt(l-)
                // From here on new observables:
-               // 6) | y(l+) -  y(l-) | 
+               // # skip 6) | y(l+) -  y(l-) | 
                // 7) pt of difference l+ - l-
-               // 8) M of difference l+ - l-
+               // # skip 8) M of difference l+ - l-
                observables.clear();
                
                if (ele_charge > 0) {
@@ -195,10 +195,10 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
                observables.push_back(momentum.M() ); // 3
                observables.push_back(elecand.E()+muoncand.E()); // 4 
                observables.push_back(elecand.Pt()+muoncand.Pt()); // 5
-               observables.push_back(elecand.Eta()-muoncand.Eta()); // 6
+               // observables.push_back(elecand.Eta()-muoncand.Eta()); // 6
                momentum=elecand-muoncand;
                observables.push_back(momentum.Pt()); // 7
-               observables.push_back(momentum.M()); // 8
+               // observables.push_back(momentum.M()); // 8
                
                // compute moments of pt 
                     // and other observables
@@ -208,7 +208,12 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
                        hist[iobs]->Fill(imom,TMath::Power(observables[iobs],imom)) ;
                        MyMessage("#  Filling observable ",iobs,debug);
                        MyMessage("#  With content ",TMath::Power(observables[iobs],imom),debug);
-                       for (int jobs=iobs; jobs<nobs; jobs++) for (int jmom=imom; jmom<=4; jmom++) corrmatr->Fill(iobs*4+imom-1,jobs*4+jmom-1,TMath::Power(observables[iobs],imom)*TMath::Power(observables[jobs],jmom));
+                       for (int col=4*iobs+imom-1; col<4*nobs; col++)  {
+                           jobs=col/4;
+                           jmom=col%4 +1; //for coherence with imom
+                           corrmatr->Fill(iobs*4+imom-1,col,TMath::Power(observables[iobs],imom)*TMath::Power(observables[jobs],jmom));
+                           if (debug) cout << col <<"jobs "<< jobs<<",jmom "<<jmom<<";"<<endl;
+                       }
                    }
                }
            }
@@ -238,9 +243,11 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
           cout << delta << endl;
       
           // now correlation matrix. "delta" contains sigma/sqrt(nen) of iobs imom, hopefully
-          for (int jobs=0; jobs<=iobs; jobs++) for (int jmom=1; jmom<=imom; jmom++) { // refine corrmatr step by step
-              mean=corrmatr->GetBinContent(jobs*4+jmom,iobs*4+imom);
-              // MyMessage("Corr matrix was: ",mean,debug);
+          for (int col=0; col<=4*iobs+imom-1; col++)  {// refine corrmatr step by step
+              jobs=col/4;
+              jmom=col%4 +1; //for coherence with imom
+              mean=corrmatr->GetBinContent(col+1,iobs*4+imom);
+              MyMessage("Corr matrix was: ",mean,debug);
               mean-=hist[iobs]->GetBinContent(imom)*hist[jobs]->GetBinContent(jmom); // now mean is <iobs jobs> - <iobs><jobs>
               MyMessage("Corr matrix is: ",mean,debug);
               mean/=nen*(delta*errors[jobs][jmom-1][masspoint]); // we are computing the corrmatrix of -this- mass point . . .
@@ -303,14 +310,14 @@ void GetMoments(const char *inputFileList,double moments[9][4][20],double errors
   delete chain;
 }
 
-void GetMomentsFromFile(const char *inputFile,double moments[9][4][20],double errors[9][4][20], int masspoint)
+void GetMomentsFromFile(const char *inputFile,double moments[7][4][20],double errors[7][4][20], int masspoint)
 {
   TFile*f1=new TFile(inputFile,"READ");
-  TH1D *hist[9];
+  TH1D *hist[7];
   
   stringstream str_i;
   
-  for (int j=0; j<9; j++){
+  for (int j=0; j<7; j++){
       str_i.str("hist_");
       str_i << j;
       hist[j] = (TH1D*) f1->Get( str_i.str().c_str() );
@@ -328,8 +335,8 @@ void PrintCorrMatrix(const char *inputFile)
   TH2D *corrmatr=(TH2D*)f1->Get("corrmatr");
   
   cout << "Correlation matrix for file "<<inputFile<<endl;
-  for (int j=0; j<9*4; j++){
-	  for (int i=0; i<9*4; i++){
+  for (int j=0; j<7*4; j++){
+	  for (int i=0; i<7*4; i++){
 		printf("%5.3f ",corrmatr->GetBinContent(j+1,i+1) );
 	  }
 	  cout << endl;
