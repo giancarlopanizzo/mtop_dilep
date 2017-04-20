@@ -22,11 +22,18 @@ void Derivations(const char *inputFile)
   TTree *chain = (TTree*)oldfile->Get("Delphes");
 
   TClonesArray *branchParticle=0,*branchElectron=0,*branchMuon=0,*branchJet=0;
+  
+  //Save only following  branches
+  chain->SetBranchStatus("*",0); //disable all branches
+  chain->SetBranchStatus("Particle*",1);
+  chain->SetBranchStatus("Electron*",1);  
+  chain->SetBranchStatus("Muon*",1);  
+  chain->SetBranchStatus("Jet*",1);
+  chain->SetBranchStatus("Photon*",1);
 
   chain->SetBranchAddress("Particle",&branchParticle);
   chain->SetBranchAddress("Electron",&branchElectron);
   chain->SetBranchAddress("Muon",&branchMuon);
-  chain->SetBranchAddress("Jet",&branchJet);
   
   
   Long64_t allEntries = chain->GetEntries();
@@ -109,7 +116,6 @@ void Derivations(const char *inputFile)
                branchParticle->Clear();
                branchElectron->Clear();
                branchMuon->Clear();
-               branchJet->Clear();
            }
        } // end good events relevant observables
   } // end loop over entries
