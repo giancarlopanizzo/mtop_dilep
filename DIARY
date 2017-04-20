@@ -65,3 +65,9 @@ On farm, run by run:
 then, if everything is good
         for files in `ls /gpfs/atlas/gpanizzo/MG5_aMCcurr/ttbarLOemu_*_1??/Events/run_08/*der.root`; do rm ${files%"der.root"}"root"; ln -s $files ${files%"der.root"}"root"; done > trash.txt
 
+Now saving only necessary branches. ! Files of this type will have extension "der.der.root". Need to modify a bit the command to be done:
+        rm derivations.*; for files in `grep "run_08" mt.moments.*.list | awk -F : '{print $2}' | sed 's/s\.root/s\.der.root/'`; do bsub -q bigmem -e derivations.err -o derivations.out -cwd `pwd` source ../../mtop_dilep/run_derivations.sh /gpfs/atlas/gpanizzo $files; done
+This will just link the new "der.der." files, without removing the actual "der" ones. Safer, for testing:
+        for files in `ls /gpfs/atlas/gpanizzo/MG5_aMCcurr/ttbarLOemu_*_1??/Events/run_08/*.der.der.root`; do rm ${files%"der.der.root"}"root"; ln -s $files ${files%"der.der.root"}"root"; done > trash.txt
+This remove the "der" files too:
+        for files in `ls /gpfs/atlas/gpanizzo/MG5_aMCcurr/ttbarLOemu_*_1??/Events/run_08/*.der.der.root`; do rm ${files%"der.root"}"root"; rm ${files%"der.der.root"}"root"; ln -s $files ${files%"der.der.root"}"root"; done > trash.txt
