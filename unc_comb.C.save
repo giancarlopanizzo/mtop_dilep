@@ -1,11 +1,5 @@
 #include <vector>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <TFile.h>
-#include <TF1.h>
-#include <TGraphErrors.h>
-#include <TMath.h>
 
 void MyMessage(const char * msg, double num, bool show)
 {
@@ -56,12 +50,12 @@ void unc_comb(const char *inputFileList)
     n_members++;
     fitres=new TFile(buffer.c_str(),"READ"); // new file means new member in the combination
                                              // for each member get parameters of each observable and add to the total
-    cout << "Opening file " << buffer.c_str() << endl;
-    for (int metaobs=0; metaobs<nobs*nmoms; metaobs++){
+    
+    for (metaobs=0; metaobs<nobs*nmoms; metaobs++){
         str_i.str("");
-        str_i<<"gr"<<metaobs/nmoms<<"_"<<metaobs%nmoms+1;
-        gr=(TGraphErrors*) fitres->Get(  str_i.str().c_str() );
-        cout <<" Opening graph: " << str_i.str().c_str();
+        str_i<<"gr"<<metaobs/nobs<<"_"<<metaobs%nmoms+1;
+        gr=(TGraphErrors*) fitres->Get(str_i.str().c_str()));
+        cout <<" Opening graph: " << str_i.str();
 
         str_i.str("");
         str_i<< "fFrix"<<metaobs%nmoms +1;
@@ -76,12 +70,11 @@ void unc_comb(const char *inputFileList)
     delete fitres;
   }// end of reading input files
  infile.close();
- cout << "Read "<<n_members <<" files."<< endl;
-
- for (int i=0; i<2; i++) for (int metaobs=0; metaobs<nobs*nmoms; metaobs++) {
-      parcomb[metaobs][i]=parcomb[metaobs][i]/n_members;
-      parerrcomb[metaobs][i]=parerrcomb[metaobs][i]/n_members;
-      parerrcomb[metaobs][i]=parerrcomb[metaobs][i]-parcomb[metaobs][i]*parcomb[metaobs][i]; // variance= <x^2>-<x>^2
+ 
+ for (int i=0; i<2; i++) for (metaobs=0; metaobs<nobs*nmoms; metaobs++) {
+      parcomb[metaobs][i]/=n_members;
+      parerrcomb[metaobs][i]/=n_members;
+      parerrcomb[metaobs][i]-=parcomb[metaobs][i]*parcomb[metaobs][i]; // variance= <x^2>-<x>^2
       if (parerrcomb[metaobs][i]>0) parerrcomb[metaobs][i]=TMath::Sqrt(parerrcomb[metaobs][i]);
       else cout << "Error in variance computation, please check your algorithm."<< endl;
   } 
@@ -89,6 +82,6 @@ void unc_comb(const char *inputFileList)
   ofstream outfile("combresults.log"); 
   // now print, for convenience, Delta( alpha ) / beta
   outfile << "Delta(alpha) / beta :"<< endl;
-  for (int metaobs=0; metaobs<nobs*nmoms; metaobs++) cout << "("<<metaobs/nmoms<<", "<<metaobs%nmoms+1<<")"<< parerrcomb[metaobs][0]/parcomb[metaobs][1]<< endl;
+  for (metaobs=0; metaobs<nobs*nmoms; metaobs++) cout << << parerrcomb[metaobs][0]/parcomb[metaobs][1]<< endl;
   outfile.close();
 }
