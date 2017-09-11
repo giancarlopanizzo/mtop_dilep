@@ -12,7 +12,8 @@ void DrawHists(const char *inputFileList)
     
   void MyMessage(const char * msg, double num, bool show);
   TChain *chain= new TChain("Delphes");
-
+  gStyle->SetOptStat(0);
+  gStyle->SetOptTitle(0);  
   if(!FillChain(chain, inputFileList)) return;
   // switch off reading unuseful branches
   chain->SetBranchStatus("*",0); //disable all branches
@@ -30,8 +31,8 @@ void DrawHists(const char *inputFileList)
   TClonesArray *branchJet = treeReader->UseBranch("Jet");
 
   Double_t delta,mean,nen;
-  TCanvas*c1=new TCanvas("c1","c1",300*4,250*2);
-  c1->Divide(4,2);
+  TCanvas*c1=new TCanvas("c1","c1",400*3,300*2);
+  c1->Divide(3,2);
   TH1::SetDefaultSumw2();  
   TH1D *hist[7];
   for (int i=0; i<7; i++) hist[i]=NULL;
@@ -48,18 +49,27 @@ void DrawHists(const char *inputFileList)
                // # skip 6) | y(l+) -  y(l-) | 
                // 7) pt of difference l+ - l-
   
-    hist[0] = new TH1D("hist_0", "Truth level positive charged lepton pt",  50, 20, 200.0);
-    hist[1] = new TH1D("hist_1", "positive charged lepton pt", 50, 20.0, 200.0);
-    hist[2] = new TH1D("hist_2", "pt of the l+l- system", 50, 20.0, 200.0);
-    hist[3] = new TH1D("hist_3", "M(l+l-)", 50, 20.0, 200.0);
-    hist[4] = new TH1D("hist_4", "E(l+) + E(l-)", 50, 40, 400.0);
+    hist[0] = new TH1D("hist_0", "Truth level positive charged lepton pt",  50, 15, 200.0);
+    hist[1] = new TH1D("hist_1", "positive charged lepton pt", 50, 15.0, 200.0);
+    hist[2] = new TH1D("hist_2", "pt of the l+l- system", 50, 0.0, 200.0);
+    hist[3] = new TH1D("hist_3", "M(l+l-)", 50, 0.0, 250.0);
+    hist[4] = new TH1D("hist_4", "E(l+) + E(l-)", 50, 40, 500.0);
     hist[5] = new TH1D("hist_5", "pt(p+) + pt(l-)", 50, 40, 400.0);
-    hist[6] = new TH1D("hist_6", "pt of difference l+ - l-", 50, 10, 200.0);
+    hist[6] = new TH1D("hist_6", "pt of difference l+ - l-", 50, 0, 250.0);
+
+    string xTitles[7]={"p_{T}(l^{+}) (GeV)",
+                       "p_{T}(l^{+}) (GeV)",
+                       "p_{T}(l^{+}+l^{-}) (GeV)",
+                       "m(l^{+}l^{-}) (GeV)",
+                       "E(l^{+}) + E(l^{-}) (GeV)",
+                       "p_{T}(l^{+}) + pt_{T}(l^{-}) (GeV)",
+                       "p_{T}(l^{+}-l^{-}) (GeV)"};
 
   // new way, taken from Example3
   
-  Long64_t allEntries = treeReader->GetEntries();
+  Long64_t allEntries = treeReader->GetEntries(), goodEntries=0;
 
+  
   cout << "** Chain contains " << allEntries << " events" << endl;
 
   TLorentzVector ele_part,muon_part;
@@ -140,6 +150,7 @@ void DrawHists(const char *inputFileList)
            if ( (ele_charge * muon_charge) > 0) continue;
            else { // two good, opposite sign leptons: go on and save all relevant observables
                MyMessage("Found two good leptons!",1,debug);
+               goodEntries++;
                //save positive lepton PT
                     // save other observables ...
                
@@ -185,16 +196,21 @@ void DrawHists(const char *inputFileList)
        } // end good events relevant observables
   } // end loop over entries
   
+  double acceptance=((double) goodEntries)/allEntries;
   // Now normalise histograms and save moments 
-  MyMessage("Number of entries: ",nen,debug);
-  for (int iobs=0; iobs<7; iobs++){ // nobs has the last value set, hopefully not buggy
+  MyMessage("good/all ",acceptance,true);
+  for (int iobs=1; iobs<7; iobs++){ // nobs has the last value set, hopefully not buggy
       if (!hist[iobs]) {
         MyMessage("Failing with histo",iobs,true);
         continue;
       }
       nen =  hist[iobs]->Integral(1,hist[iobs]->GetNbinsX()  ) ; 
       hist[iobs]->Scale(1.0/nen); // this should scale both contents and errors 
-      c1->cd(iobs+1);
+      c1->cd(iobs);
+      hist[iobs]->GetXaxis()->SetTitle(xTitles[iobs].c_str());
+      hist[iobs]->GetXaxis()->SetTitleSize(0.06);
+      hist[iobs]->GetYaxis()->SetTitleSize(0.06);
+      hist[iobs]->GetYaxis()->SetTitle("Norm. entries");
       hist[iobs]->Draw("hist");
       hist[iobs]->SetDirectory(gROOT);
   }
